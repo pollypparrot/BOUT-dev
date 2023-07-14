@@ -103,24 +103,24 @@ public:
     A.allocate();
     B.allocate();
     bResult.allocate(); //here!!
-   
+
     BOUT_FOR(i, mesh->getRegion3D("RGN_ALL")) {
       const BoutReal x = i.x() / nx - 0.5;
       const BoutReal y = i.y() / ny - 0.5;
       const BoutReal z = i.z() / nz - 0.5;
       const BoutReal pi = 3.14159265358979323846;
       //CAN CHANGE INPUTS INTO THE TEST HERE
-      f3[i] = 1;//CHANGE INPUTTED FUNCTION
-      A[i] = x + y + sin(2 * pi * z);
-      B[i] = 1.0;
-      bResult[i] = B[i];//input here!!
+      f3[i] =x;//CHANGE INPUTTED FUNCTION
+      A[i] = 1;
+      B[i] = 1;
+      bResult[i] = 4*pow(x,3) + x  ;//input here!!
 
-      const BoutReal eps =.1;
-      const BoutReal r = eps*(.9 + .1*x);
-      const BoutReal theta = y-pi;
-      const BoutReal Rxy = 1. +r*cos(theta);
-      const BoutReal Bt = 1./Rxy;
-      const BoutReal Bp = 1/r;
+      const BoutReal eps = 1;
+      const BoutReal r = x;
+      const BoutReal theta = y;
+      const BoutReal Rxy = r;
+      const BoutReal Bt = Rxy;
+      const BoutReal Bp = r;
       coords->Bxy[i] = sqrt(Bt*Bt+Bp*Bp);
       const BoutReal hthe = r;
       const BoutReal J = hthe/Bp;
@@ -129,7 +129,6 @@ public:
       const BoutReal dx = .1/nx;
       const BoutReal dy = 2.*pi/ny;
       const BoutReal dz = 2.*pi/nz;
-
 
       coords->g11[i] = pow(Rxy*Bp,2);
       coords->g22[i] = 1./(hthe*hthe);
@@ -170,7 +169,7 @@ INSTANTIATE_TEST_SUITE_P(LaplaceXZTest, LaplaceXZPetscTest,
                          testing::Values(std::make_tuple(true, false)));
 
 TEST_P(LaplaceXZPetscTest, TestSolve3D) {
-  Field3D expected = bResult;
+  Field3D expected = f3;
   solver.setCoefs(A, B);
   forward.A = A;
   forward.B = B;
@@ -205,4 +204,3 @@ TEST_P(LaplaceXZPetscTest, Testsolve3DBackwards){
 
 
 #endif // BOUT_HAS_PETSC
-
