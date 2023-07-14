@@ -102,15 +102,42 @@ public:
     f3.allocate();
     A.allocate();
     B.allocate();
-
+    bResult.allocate(); //here!!
+   
     BOUT_FOR(i, mesh->getRegion3D("RGN_ALL")) {
       const BoutReal x = i.x() / nx - 0.5;
       const BoutReal y = i.y() / ny - 0.5;
       const BoutReal z = i.z() / nz - 0.5;
-      f3[i] = 1e3 * exp(-0.5 * sqrt(x * x + y * y + z * z) / sigmasq);
-      A[i] = x + y + sin(2 * 3.14159265358979323846 * z);
+      const BoutReal pi = 3.14159265358979323846;
+      //CAN CHANGE INPUTS INTO THE TEST HERE
+      f3[i] = 1;//CHANGE INPUTTED FUNCTION
+      A[i] = x + y + sin(2 * pi * z);
       B[i] = 1.0;
-    }
+      bResult[i] = B[i];//input here!!
+
+      const BoutReal eps =.1;
+      const BoutReal r = eps*(.9 + .1*x);
+      const BoutReal theta = y-pi;
+      const BoutReal Rxy = 1. +r*cos(theta);
+      const BoutReal Bt = 1./Rxy;
+      const BoutReal Bp = 1/r;
+      coords->Bxy[i] = sqrt(Bt*Bt+Bp*Bp);
+      const BoutReal hthe = r;
+      const BoutReal J = hthe/Bp;
+      const BoutReal nu = Bt*hthe/(Bp*Rxy);
+
+      const BoutReal dx = .1/nx;
+      const BoutReal dy = 2.*pi/ny;
+      const BoutReal dz = 2.*pi/nz;
+
+
+      coords->g11[i] = pow(Rxy*Bp,2);
+      coords->g22[i] = 1./(hthe*hthe);
+      coords->g33[i] = pow((coords->Bxy[i])/(Rxy+Bp),2);
+      coords->g12[i] = 0.;
+      coords->g13[i] = 0.0;
+      coords->g23[i] = -nu/(hthe*hthe); 
+      }
   }
 
   ~LaplaceXZPetscTest() {
@@ -119,7 +146,7 @@ public:
   }
 
   LaplaceXZpetsc solver;
-  Field3D f3, A, B;
+  Field3D f3, A , B, bResult; //!!!!
   static constexpr BoutReal sigmasq = 0.02;
   static constexpr BoutReal tol = 1e-8;
   ForwardOperatorXZ forward;
@@ -143,16 +170,17 @@ INSTANTIATE_TEST_SUITE_P(LaplaceXZTest, LaplaceXZPetscTest,
                          testing::Values(std::make_tuple(true, false)));
 
 TEST_P(LaplaceXZPetscTest, TestSolve3D) {
-  Field3D expected = f3;
+  Field3D expected = bResult;
   solver.setCoefs(A, B);
   forward.A = A;
   forward.B = B;
-  const Field3D actual = solver.solve(forward(f3), 0.0);
+  const Field3D actual = solver.solve(forward(f3), f3);
   EXPECT_TRUE(IsFieldEqual(actual, expected, "RGN_NOBNDRY", tol));
 }
 
 TEST_P(LaplaceXZPetscTest, TestSolve3DGuess) {
-  Field3D expected = f3, guess = f3 * 1.01;
+  Field3D expected = f3;
+  Field3D guess = f3 * 1.01;
   solver.setCoefs(A, B);
   forward.A = A;
   forward.B = B;
@@ -160,4 +188,21 @@ TEST_P(LaplaceXZPetscTest, TestSolve3DGuess) {
   EXPECT_TRUE(IsFieldEqual(actual, expected, "RGN_NOBNDRY", tol));
 }
 
+TEST_P(LaplaceXZPetscTest, Testsolve3DForward){
+  Field3D expected = bResult;
+  forward.A = A;
+  forward.B = B;
+  const Field3D actual = forward(f3);
+  EXPECT_TRUE(IsFieldEqual(actual, expected, "RGN_NOBNDRY", tol));
+}
+
+TEST_P(LaplaceXZPetscTest, Testsolve3DBackwards){
+  Field3D expected = f3;
+  solver.setCoefs(A, B);
+  const Field3D actual = solver.solve(bResult, f3);
+  EXPECT_TRUE(IsFieldEqual(actual, expected, "RGN_NOBNDRY", tol));
+}
+
+
 #endif // BOUT_HAS_PETSC
+
