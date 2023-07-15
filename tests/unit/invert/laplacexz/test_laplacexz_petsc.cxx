@@ -110,10 +110,10 @@ public:
       const BoutReal z = i.z() / nz - 0.5;
       const BoutReal pi = 3.14159265358979323846;
       //CAN CHANGE INPUTS INTO THE TEST HERE
-      f3[i] =x;//CHANGE INPUTTED FUNCTION
+      f3[i] = sin(z)*cos(x);//CHANGE INPUTTED FUNCTION
       A[i] = 1;
       B[i] = 1;
-      bResult[i] = 4*pow(x,3) + x  ;//input here!!
+      bResult[i] = -pow(x,4)*sin(z)*cos(x) - 4*pow(x,3)*sin(x)*sin(z) + sin(z)*cos(x) - 2*sin(z)*cos(x)/pow(x,2)  ;//input here!!
 
       const BoutReal eps = 1;
       const BoutReal r = x;
